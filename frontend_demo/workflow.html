@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Watch Mini find a CN report, prepare a submission, and ask for final approval.">
+  <title>Mini — CN report submission</title>
+  <link rel="stylesheet" href="identity.css">
+  <link rel="stylesheet" href="studio.css">
+  <script defer src="report-print.js"></script>
+  <script defer src="demo.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand brand-link" href="index.html" aria-label="Mini architecture overview"><i class="mini-mark" aria-hidden="true"></i>mini</a>
+    <h1>Workflow demo</h1>
+    <a class="back-link" href="index.html#system">System map <span aria-hidden="true">↗</span></a>
+  </header>
+  <main>
+    <section class="workspace" aria-label="CN report submission demo">
+      <div class="stage">
+        <div class="stage-slate"><span>CN–027 <i>/</i> Coursework</span><span class="offline">Offline simulation</span></div>
+        <div class="step-copy">
+          <div class="actor" id="actor"></div>
+          <h2 id="title" aria-live="polite"></h2>
+          <p id="caption"></p>
+          <div id="opening-controls" class="opening-controls"></div>
+        </div>
+        <div class="scene" id="scene"></div>
+        <div class="stage-foot"><span id="mode"></span><span id="status"></span></div>
+      </div>
+      <div class="progress" aria-hidden="true"><div id="progress"></div></div>
+      <div class="transport" role="group" aria-label="Playback and presentation controls">
+        <div id="controls" class="controls"></div>
+        <div class="utilities">
+          <label class="pace-control">Speed <select id="pace"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></label>
+          <button type="button" data-action="reset">Restart</button>
+          <button type="button" data-action="activity">Activity</button>
+          <button id="fullscreen" type="button" hidden>Fullscreen</button>
+        </div>
+      </div>
+      <div id="rail" role="group" aria-label="Story chapters"></div>
+    </section>
+  </main>
+  <dialog id="details" aria-labelledby="details-title">
+    <div class="dialog-header"><h2 id="details-title"></h2><form method="dialog"><button class="button subtle" value="close">Close</button></form></div>
+    <div id="details-content"></div>
+  </dialog>
+</body>
+</html>

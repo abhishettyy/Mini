@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore Mini’s proposed dual-device agent architecture, independent policy checks, and human approval workflow.">
+  <title>Mini — System architecture</title>
+  <link rel="stylesheet" href="identity.css">
+  <link rel="stylesheet" href="architecture.css">
+  <script defer src="report-print.js"></script>
+  <script defer src="devices.js"></script>
+  <script defer src="architecture.js"></script>
+</head>
+<body>
+  <a class="skip" href="#system">Skip to system map</a>
+  <header class="mast">
+    <div class="shell mast-inner">
+      <a href="#overview" class="brand" aria-label="Mini overview"><i class="mini-mark" aria-hidden="true"></i>mini</a>
+      <nav aria-label="Architecture navigation"><a href="#system">System map</a><a href="#tools">Tool directory</a><a href="#policy">Policy lab</a></nav>
+      <a class="nav-film" href="workflow.html"><i class="play-icon" aria-hidden="true"></i> Workflow demo</a>
+    </div>
+  </header>
+  <main id="overview" class="shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> System architecture</p>
+        <h1>Run laptop tasks<br><em>from your phone.</em></h1>
+        <p class="lead">Mini pairs your phone with a local AI agent. The agent finds files, prepares work across apps, and asks you to approve sensitive actions.</p>
+        <div class="links"><a class="solid" href="#system">Explore system map</a><a class="text-link" href="workflow.html#film"><i class="play-icon" aria-hidden="true"></i> Watch demo</a></div>
+      </div>
+      <figure class="hero-art">
+        <div class="art-header"><span class="tiny-terminal" aria-hidden="true"></span> Paired workspace <span class="art-link"><i></i>NectarLink</span></div>
+        <canvas id="devices" width="680" height="370" role="img" aria-label="Phone and laptop exchanging a simulated CN report request over NectarLink.">Paired phone and laptop workflow</canvas>
+        <figcaption><div class="art-controls" aria-label="Preview a workflow moment" role="group"><button type="button" data-moment="0" aria-pressed="true">Request</button><button type="button" data-moment="1" aria-pressed="false">Prepare</button><button type="button" data-moment="2" aria-pressed="false">Approve</button></div><span id="moment-status" aria-live="polite">Phone to laptop</span></figcaption>
+      </figure>
+    </section>
+    <section class="feature-demo" id="demo" aria-labelledby="demo-title">
+      <div class="feature-copy">
+        <p class="kicker">The workflow demo</p>
+        <h2 id="demo-title">“Submit my <em>CN report.”</em></h2>
+        <p>Watch Mini find the PDF on Asha’s laptop and the form in her inbox. Take the controls to choose her lab section and approve the submission.</p>
+        <div class="feature-links"><a class="solid" href="workflow.html#film"><i class="play-icon" aria-hidden="true"></i> Play the film</a><a href="workflow.html#interactive">Try it yourself <span aria-hidden="true">→</span></a></div>
+      </div>
+      <div class="feature-cover" aria-hidden="true"><cn-report></cn-report><div class="feature-slip"><span>Submission receipt</span><strong>CN–4821</strong><i></i></div></div>
+      <ol class="feature-chapters" aria-label="Demo sequence"><li>Request</li><li>Prepare</li><li>Review</li><li>Receipt</li></ol>
+    </section>
+    <section class="section" id="system" aria-labelledby="map-title">
+      <div class="section-head"><div><p class="eyebrow"><span></span> Architecture explorer</p><h2 id="map-title">System map</h2></div>
+        <p>Select a component to inspect its role, or trace a report submission from the phone to the audit log.</p></div>
+      <div class="system-board">
+        <div class="board-top"><strong>Device and execution boundaries</strong><div class="map-actions"><button id="trace-play" type="button" aria-pressed="false">Play flow</button><button id="trace-start" type="button">Trace a submission</button></div></div>
+        <div class="board-content"><div class="map-column"><div class="map">
+          <div class="region mobile-region"><h3>Phone</h3>
+            <button class="component" data-node="phone"><b>Mobile Companion</b><small>Intent &amp; context</small></button>
+            <button class="component" data-node="review"><b>Approval UI</b><small>Evidence &amp; decision</small></button>
+          </div>
+          <div class="region transport-region"><h3>Connection</h3>
+            <button class="component" data-node="link"><b>NectarLink</b><small>Paired, encrypted transport</small></button>
+            <span class="connection-label">⇄ &nbsp; Requests, files &amp; decisions</span>
+          </div>
+          <div class="region laptop-region"><h3>Laptop</h3>
+            <div class="pair"><button class="component" data-node="daemon"><b>Mini Daemon</b><small>Task session</small></button><span class="edge" aria-hidden="true">→</span><button class="component" data-node="planner"><b>OpenClaw</b><small>Tool plan</small></button></div>
+            <div class="connector">↓ &nbsp; Proposed tool call</div>
+            <div class="security-zone"><button class="component" data-node="gate"><b>Policy Enforcement Layer</b><small>Independent check on every invocation</small></button><span class="branch-label">If approval is required ⇄</span><button class="component" data-node="contract"><b>Approval Contract Manager</b><small>Phone review &amp; laptop revalidation</small></button></div>
+            <div class="connector">↓ &nbsp; Permitted action only</div>
+            <button class="component" data-node="execute"><b>MCP execution</b><small>Scoped files, documents, browser, mail &amp; Git</small></button>
+          </div>
+        </div>
+        <button class="observe component" data-node="observe"><b>Glass-Box Monitor &amp; Audit Logger</b><small>Receive events from the daemon, policy gate, contracts, and tools</small></button></div>
+        <div class="inspector"><span class="inspect-symbol" aria-hidden="true"></span><div><p id="inspect-label" class="kicker"></p><h3 id="inspect-title" aria-live="polite"></h3></div><div><p id="inspect-text"></p><p class="handoff" id="inspect-route"></p></div>
+        <div class="trace-controls" id="trace-controls" hidden><button id="trace-back" type="button">Previous</button><span id="trace-count"></span><button id="trace-next" type="button">Next step</button></div></div></div>
+      </div>
+    </section>
+    <section class="section" id="tools" aria-labelledby="tool-title">
+      <div class="section-head"><div><p class="eyebrow"><span></span> Model Context Protocol</p><h2 id="tool-title">Tool directory</h2></div><p>OpenClaw selects a capability. The independent policy layer checks the operation and its target before the tool can act.</p></div>
+      <div class="tool-browser"><div class="tool-menu" id="tool-menu" role="group" aria-label="Inspect an MCP server"></div>
+        <div class="tool-detail"><div class="tool-emblem" aria-hidden="true"><i class="tool-icon" id="tool-emblem"></i></div><h3 id="tool-name" aria-live="polite"></h3><p id="tool-purpose"></p>
+          <dl><div><dt>Example call</dt><dd id="tool-example"></dd></div><div><dt>Review evidence</dt><dd id="tool-evidence"></dd></div></dl>
+        </div>
+      </div>
+      <details class="stack"><summary>Proposed implementation stack</summary><p>Android and Kotlin provide the mobile companion. The proposed laptop daemon uses Python or Node.js, with REST and JSON-RPC for application interfaces. NectarLink handles the paired connection. OpenClaw coordinates MCP servers, including Playwright for browser operations and python-docx or docxtpl for reports. The security design uses scoped roles, encrypted communication, and cryptographic signatures.</p></details>
+    </section>
+    <section class="section" id="policy" aria-labelledby="policy-title">
+      <div class="section-head"><div><p class="eyebrow"><span></span> Security &amp; observability</p><h2 id="policy-title">Policy lab</h2></div><p>Choose a proposed tool call. Follow its risk classification, review any evidence, and watch the same task appear in the Glass-Box Monitor.</p></div>
+      <div class="policy-workbench">
+        <div class="policy-panel">
+          <label for="scenario">Proposed operation</label>
+          <select id="scenario">
+            <option value="submit">L2 · Submit a university form</option>
+            <option value="read">L0 · Read an approved report</option>
+            <option value="stage">L1 · Generate a staged document</option>
+            <option value="delete">L3 · Delete a report folder</option>
+            <option value="deny">Read a protected credential file</option>
+          </select>
+          <div class="decision-heading"><span class="risk" id="risk"></span><h3 id="case-title"></h3></div>
+          <p id="case-description"></p>
+          <div id="decision" aria-live="polite"></div>
+          <div class="policy-actions" id="policy-actions"></div>
+        </div>
+        <div class="monitor">
+          <div class="monitor-title"><div><p class="kicker">Glass-Box Monitor</p><h3>Task activity</h3></div><span class="monitor-status" id="monitor-status"></span></div>
+          <p class="monitor-note">Local simulation · In-memory event history</p>
+          <ol id="events" aria-label="Task audit events"></ol>
+          <div class="monitor-actions"><button id="hold" type="button">Pause</button><button id="cancel" type="button">Cancel task</button><button id="kill" type="button">Emergency stop</button></div>
+        </div>
+      </div>
+      <details class="stack"><summary>What the platform records</summary><p>The proposed audit logger records task creation, tool invocations, permission decisions, artifact hashes, approvals, rejections, timestamps, and execution outcomes. Task IDs tie the records back to the original request. The monitor exposes the live trace and controls. Tamper-evident audit storage is planned as a future enhancement.</p></details>
+    </section>
+  </main>
+  <footer class="shell"><a class="brand" href="#overview"><i class="mini-mark" aria-hidden="true"></i>mini</a><span>Proposed architecture · Interactive frontend prototype</span></footer>
+</body>
+</html>
+
