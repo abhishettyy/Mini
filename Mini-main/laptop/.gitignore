@@ -1,0 +1,56 @@
+# =============================================================================
+# Mini Laptop Runtime (.gitignore)
+# =============================================================================
+
+# --- Environment & Secrets (NEVER commit) ---
+.env
+.env.*
+!.env.example
+.mini/
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*token*.json
+*client_secret*.json
+dev_mobile_key.json
+trusted_devices.json
+.netrc
+.pgpass
+
+# --- Runtime State, Transactional Staging & Audit Logs ---
+workspaces/
+logs/
+state/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.jsonl
+*.pid
+
+# --- Python / Packaging / Caches ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- OS / Editor ---
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

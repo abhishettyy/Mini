@@ -1,0 +1,87 @@
+# =============================================================================
+# Mini — Zero-Trust Dual-Device AI Execution Runtime (.gitignore)
+# =============================================================================
+
+# --- Environment & Secrets (NEVER commit) ---
+.env
+.env.*
+!.env.example
+.mini/
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*token*.json
+*client_secret*.json
+dev_mobile_key.json
+trusted_devices.json
+.netrc
+.pgpass
+
+# --- Mini Runtime State, Staging & Audit Logs ---
+workspaces/
+logs/
+state/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.jsonl
+*.pid
+
+# --- Python / Virtual Environments / Packaging ---
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Testing & Linters ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# --- Mobile / Node / Android / iOS (Companion App) ---
+node_modules/
+.expo/
+.gradle/
+local.properties
+*.apk
+*.aab
+*.ipa
+*.jks
+*.keystore
+
+# --- IDE & OS Files ---
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

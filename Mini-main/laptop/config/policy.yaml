@@ -1,0 +1,214 @@
+# =============================================================================
+# Mini laptop policy — single source of truth for the MCP Policy Proxy.
+#
+# * Relative paths resolve against the project root (the directory containing
+#   config/), NOT the current working directory.
+# * "~" expands to the current user's home directory.
+# * Risk levels are assigned ONLY from this file. Tool-call arguments supplied
+#   by the planner can escalate risk (escalations) but can never lower it.
+# =============================================================================
+version: 1
+
+daemon:
+  host: 127.0.0.1            # loopback only; never bind 0.0.0.0
+  port: 8765
+  mcp_path: /mcp
+  require_bearer_token: true # token from env MINI_PROXY_TOKEN
+  dev_mode: false            # overridable by env MINI_DEV_MODE=true (enables /mobile-mock signer)
+  approval_wait_seconds: 120 # env MINI_APPROVAL_WAIT_SECONDS overrides
+  contract_ttl_seconds: 300
+  kill_switch_grace_ms: 500  # terminate() -> wait -> kill()
+
+paths:
+  mini_home: ~/.mini
+  secrets_dir: ~/.mini/secrets
+  trusted_devices: ~/.mini/trusted_devices.json
+  workspaces_dir: ./workspaces     # workspaces/{task_id}/{staging,blobs,rollback,drafts}
+  logs_dir: ./logs                 # logs/audit.jsonl
+  state_db: ./state/mini.db        # SQLite (WAL): audit, nonces, contracts
+
+# Directories the agent may read from / commit into. Overridable with env
+# MINI_APPROVED_ROOTS (os.pathsep-separated list).
+approved_roots:
+  - ./demo_project
+
+denylist:
+  # Matched (case-insensitively) against the final path component.
+  filename_globs:
+    - ".env"
+    - ".env.*"
+    - "*.pem"
+    - "*.key"
+    - "*.p12"
+    - "*.pfx"
+    - "*credentials*.json"
+    - "*token*.json"
+    - "*client_secret*.json"
+    - "id_rsa*"
+    - "id_ecdsa*"
+    - "id_ed25519*"
+    - ".netrc"
+    - ".pgpass"
+  # Matched (case-insensitively, "/" separators) against the full canonical path.
+  path_globs:
+    - "**/.git/config"
+    - "**/.git/hooks/**"
+    - "**/.git/**"             # git internals are only reachable through the git worker
+  # Whole directory trees (canonicalized with realpath at load time).
+  protected_dirs:
+    - ~/.ssh
+    - ~/.aws
+    - ~/.gnupg
+    - ~/.kube
+    - ~/.docker
+    - ~/.config/gcloud
+    - ~/.mini                 # includes ~/.mini/secrets/** and trusted_devices.json
+    - ./config                # the agent must never edit its own policy
+    - ./state
+    - ./logs
+    - ./workspaces            # staging is reachable only through the staging engine
+  system_dirs:
+    windows:
+      - C:/Windows
+      - C:/Program Files
+      - C:/Program Files (x86)
+      - C:/ProgramData
+      - C:/$Recycle.Bin
+      - C:/System Volume Information
+    posix:
+      - /etc
+      - /bin
+      - /sbin
+      - /usr
+      - /boot
+      - /dev
+      - /proc
+      - /sys
+      - /root
+      - /var/lib
+      - /var/log
+      - /var/db
+      - /private/etc
+      - /System
+      - /Library
+
+limits:
+  max_read_bytes: 1048576        # 1 MiB per fs_read_file
+  max_write_bytes: 1048576       # 1 MiB per staged write
+  max_list_entries: 500
+  max_diff_bytes: 200000         # evidence diff truncation
+  max_attachment_bytes: 10485760 # 10 MiB per attachment
+  max_recipients: 20
+  max_gmail_results: 50
+
+gmail:
+  scopes:
+    - https://www.googleapis.com/auth/gmail.readonly
+    - https://www.googleapis.com/auth/gmail.compose
+  allowed_recipient_domains: []  # empty = any domain (still L2-gated)
+  blocked_recipient_domains: []
+
+# Isolated git worker (src/mini/mcp_servers/git_server.py).
+# Only the git subprocess receives MINI_GIT_TOKEN / MINI_GIT_USER_NAME /
+# MINI_GIT_USER_EMAIL / MINI_GIT_MOCK. Pushes go ONLY to the URL listed here
+# for the chosen remote name (never to whatever .git/config says), over HTTPS
+# with an ephemeral GIT_ASKPASS helper. No force pushes, no deletes, no hooks.
+git:
+  allowed_remotes:
+    origin: https://github.com/Vrushabh1900/Vrushabh1900.git
+  allowed_branches: [main]
+  max_files: 50
+  max_commit_message_bytes: 4096
+
+# Deterministic risk map. Unknown tools are DENIED.
+#   path_args       : string args canonicalized + checked by path_guard
+#   path_list_args  : list[str] args, each canonicalized + checked
+#   action_type     : approval contract action_type (L2/L3 only)
+tools:
+  fs_list_dir:
+    server: filesystem
+    risk: L0
+    path_args: [path]
+  fs_read_file:
+    server: filesystem
+    risk: L0
+    path_args: [path]
+  fs_write_staged:
+    server: filesystem
+    risk: L1
+    path_args: [target_path]
+    task_scoped: true
+  fs_commit_staged:
+    server: filesystem
+    risk: L2
+    path_args: [target_path]
+    task_scoped: true
+    action_type: filesystem.commit_staged
+  fs_delete_file:
+    server: filesystem
+    risk: L3
+    path_args: [path]
+    task_scoped: true
+    action_type: filesystem.delete_file
+  gmail_search:
+    server: gmail
+    risk: L0
+  gmail_read_message:
+    server: gmail
+    risk: L0
+  gmail_stage_draft:
+    server: gmail
+    risk: L1
+    path_list_args: [attachment_paths]
+    task_scoped: true
+  gmail_send_staged:
+    server: gmail
+    risk: L2
+    task_scoped: true
+    action_type: gmail.send_staged
+  git_status:
+    server: git
+    risk: L0
+    path_args: [repo_path]
+  git_diff:
+    server: git
+    risk: L0
+    path_args: [repo_path]
+  git_stage_commit:
+    server: git
+    risk: L1
+    path_args: [repo_path]
+    task_scoped: true
+  git_commit_and_push:
+    server: git
+    risk: L2
+    task_scoped: true
+    action_type: git.commit_and_push
+
+# Monotonic escalations: if any listed path arg matches, risk is raised to
+# max(current, risk). Never lowers.
+escalations:
+  - id: commit-executable-or-ci
+    tools: [fs_commit_staged]
+    path_globs:
+      - "**/*.ps1"
+      - "**/*.bat"
+      - "**/*.cmd"
+      - "**/*.sh"
+      - "**/*.exe"
+      - "**/.github/workflows/**"
+    risk: L3
+  # Evaluated by the proxy against the files frozen in the staged commit
+  # proposal (git_commit_and_push itself carries no path arguments).
+  - id: git-push-executable-or-ci
+    tools: [git_commit_and_push]
+    path_globs:
+      - "**/*.ps1"
+      - "**/*.bat"
+      - "**/*.cmd"
+      - "**/*.sh"
+      - "**/*.exe"
+      - "**/.github/workflows/**"
+      - "**/.gitattributes"
+      - "**/.gitmodules"
+    risk: L3

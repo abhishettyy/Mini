@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini — Mock Mobile Companion &amp; Evidence Viewer</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --phone: #111827;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1.25rem;
+    }
+    .shell {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      background: var(--phone);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 1.2rem;
+    }
+    h1 { font-size: 1.1rem; margin: 0; }
+    .sub { font-size: 0.8rem; color: var(--muted); }
+    .mono { font-family: var(--mono); font-size: 0.76rem; }
+    .key-bar {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.2rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+    }
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    button, a.btn {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      padding: 0.5rem 0.95rem;
+      border-radius: 8px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    button.active {
+      border-color: #38bdf8;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+    }
+    .contract-card {
+      background: var(--phone);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.15rem 1.25rem;
+      margin-bottom: 1.15rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .c-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.6rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.85rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.18rem 0.55rem;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .risk-L2 { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid #b45309; }
+    .risk-L3 { background: rgba(239, 68, 68, 0.22); color: #f87171; border: 1px solid #dc2626; }
+    .status-PENDING { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+    .status-EXECUTED { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .status-REJECTED, .status-REVOKED, .status-FAILED, .status-EXPIRED {
+      background: rgba(239, 68, 68, 0.2); color: #fca5a5;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.6rem;
+      margin-bottom: 0.85rem;
+      font-size: 0.82rem;
+    }
+    .meta-item {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.7rem;
+    }
+    .meta-item .k { color: var(--muted); font-size: 0.73rem; }
+    .meta-item .v { font-family: var(--mono); font-size: 0.78rem; word-break: break-all; }
+    .diff-box, .email-box {
+      background: #070a10;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.75rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      overflow-x: auto;
+      margin-bottom: 0.85rem;
+    }
+    .diff-add { color: #4ade80; background: rgba(34, 197, 94, 0.1); display: block; }
+    .diff-del { color: #f87171; background: rgba(239, 68, 68, 0.1); display: block; }
+    .diff-hdr { color: #38bdf8; display: block; }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 0.9rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+    .btn-approve {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-color: #34d399;
+      color: #fff;
+      padding: 0.6rem 1.25rem;
+    }
+    .btn-reject {
+      background: rgba(239, 68, 68, 0.16);
+      border-color: #ef4444;
+      color: #fca5a5;
+      padding: 0.6rem 1.1rem;
+    }
+    .l3-confirm {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid #dc2626;
+      color: #fecaca;
+      font-size: 0.82rem;
+      margin-bottom: 0.75rem;
+    }
+    details summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 0.4rem;
+    }
+    .toast {
+      position: fixed;
+      bottom: 1.2rem;
+      right: 1.2rem;
+      background: #1e293b;
+      border: 1px solid #38bdf8;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      font-size: 0.83rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>MINI // Companion Approval &amp; Evidence Viewer (Mock Mobile)</h1>
+        <div class="sub">Out-of-Band RFC 8785 Canonical Contract Review &amp; Ed25519 Signing</div>
+      </div>
+      <div style="display:flex; gap:0.5rem;">
+        <a class="btn" href="/monitor" target="_blank" rel="noopener">Glass-Box Monitor (/monitor)</a>
+        <button id="refreshBtn" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <div class="key-bar">
+      <div>
+        <strong>Paired Dev Device:</strong>
+        <span id="devId" class="mono">loading&hellip;</span>
+      </div>
+      <div>
+        <strong>Pinned Ed25519 Public Key:</strong>
+        <span id="devPub" class="mono">loading&hellip;</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button id="tabPending" class="active" type="button">Pending Approvals (<span id="pendingCount">0</span>)</button>
+      <button id="tabAll" type="button">History (All Contracts)</button>
+    </div>
+
+    <div id="contractsContainer"></div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    let currentFilter = "PENDING";
+
+    function esc(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function showToast(msg, isErr = false) {
+      const t = document.getElementById("toast");
+      t.style.display = "block";
+      t.style.borderColor = isErr ? "#ef4444" : "#34d399";
+      t.textContent = msg;
+      setTimeout(() => { t.style.display = "none"; }, 4000);
+    }
+
+    function formatDiff(diffText) {
+      if (!diffText) return `<span style="color:var(--muted);">(no textual diff)</span>`;
+      return diffText.split("\n").map(line => {
+        if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@")) {
+          return `<span class="diff-hdr">${esc(line)}</span>`;
+        }
+        if (line.startsWith("+")) return `<span class="diff-add">${esc(line)}</span>`;
+        if (line.startsWith("-")) return `<span class="diff-del">${esc(line)}</span>`;
+        return `<span>${esc(line)}</span>\n`;
+      }).join("");
+    }
+
+    function renderEvidence(ev, contract) {
+      if (ev.kind === "file_diff") {
+        return `
+          <div class="meta-grid">
+            <div class="meta-item"><div class="k">Target File</div><div class="v">${esc(ev.target_path)}</div></div>
+            <div class="meta-item"><div class="k">Staged Immutable Blob</div><div class="v">${esc(ev.staged_blob_sha256)}</div></div>
+            <div class="meta-item"><div class="k">Destination Before Hash</div><div class="v">${esc(ev.destination_before_sha256 ?? "(new file)")}</div></div>
+            <div class="meta-item"><div class="k">Size Change</div><div class="v">${esc(ev.size_before ?? 0)} B &rarr; ${esc(ev.size_after)} B</div></div>
+          </div>
+          <div class="sub" style="margin-bottom:0.3rem;">Unified Before/After Diff Preview:</div>
+          <div class="diff-box"><pre style="margin:0;">${formatDiff(ev.unified_diff)}</pre></div>
+        `;
+      }
+      if (ev.kind === "file_delete") {
+        return `
+          <div class="meta-grid">
+            <div class="meta-item"><div class="k">Delete Target</div><div class="v">${esc(ev.target_path)}</div></div>
+            <div class="meta-item"><div class="k">Target SHA-256</div><div class="v">${esc(ev.target_sha256)}</div></div>
+            <div class="meta-item"><div class="k">File Size</div><div class="v">${esc(ev.size_bytes)} B</div></div>
+          </div>
+          <div class="diff-box"><pre style="margin:0;">${esc(ev.preview || "(binary or empty file)")}</pre></div>
+        `;
+      }
+      if (ev.kind === "email") {
+        const attRows = (ev.attachments || []).map(a =>
+          `<li><strong>${esc(a.filename)}</strong> (${esc(a.size_bytes)} B) &mdash; <span class="mono">${esc(a.sha256)}</span></li>`
+        ).join("");
+        return `
+          <div class="meta-grid">
+            <div class="meta-item"><div class="k">To</div><div class="v">${esc((ev.to || []).join(", "))}</div></div>
+            <div class="meta-item"><div class="k">CC / BCC</div><div class="v">CC: ${esc((ev.cc || []).join(", ") || "—")} | BCC: ${esc((ev.bcc || []).join(", ") || "—")}</div></div>
+            <div class="meta-item"><div class="k">Subject</div><div class="v">${esc(ev.subject)}</div></div>
+            <div class="meta-item"><div class="k">Canonical Payload Hash</div><div class="v">${esc(ev.email_payload_sha256)}</div></div>
+          </div>
+          <div class="sub" style="margin-bottom:0.3rem;">Email Body Preview:</div>
+          <div class="email-box"><pre style="margin:0; white-space:pre-wrap;">${esc(ev.body)}</pre></div>
+          <div class="sub">Verified Attachments (${(ev.attachments || []).length}):</div>
+          <ul class="mono" style="margin:0.3rem 0 0.6rem; padding-left:1.2rem;">
+            ${attRows || "<li>None</li>"}
+          </ul>
+        `;
+      }
+      if (ev.kind === "git_commit") {
+        return renderGitEvidence(ev, contract);
+      }
+      return `<pre class="diff-box">${esc(JSON.stringify(ev, null, 2))}</pre>`;
+    }
+
+    // RFC 8785-style canonical JSON for display (sorted keys, no whitespace).
+    function jcs(v) {
+      if (v === null || typeof v !== "object") return JSON.stringify(v);
+      if (Array.isArray(v)) return "[" + v.map(jcs).join(",") + "]";
+      return "{" + Object.keys(v).sort().map(k => JSON.stringify(k) + ":" + jcs(v[k])).join(",") + "}";
+    }
+
+    function renderGitEvidence(ev, contract) {
+      const esc_ = new Set(ev.escalated_paths || []);
+      const fileRows = (ev.files || []).map(f =>
+        `<li>${esc(f)}${esc_.has(f) ? ' <span class="badge risk-L3">L3 trigger</span>' : ""}</li>`
+      ).join("");
+      return `
+        <div class="meta-grid">
+          <div class="meta-item"><div class="k">Repository</div><div class="v">${esc(ev.repo_name)}</div></div>
+          <div class="meta-item"><div class="k">Branch</div><div class="v">${esc(ev.branch)}</div></div>
+          <div class="meta-item"><div class="k">Push Target (allowlisted)</div><div class="v">${esc(ev.remote)} &rarr; ${esc(ev.remote_url)}</div></div>
+          <div class="meta-item"><div class="k">Staged Commit ID</div><div class="v">${esc(ev.staged_commit_id)}</div></div>
+          <div class="meta-item"><div class="k">diff_sha256 (git diff --cached)</div><div class="v">${esc(ev.diff_sha256)}</div></div>
+          <div class="meta-item"><div class="k">Staged Tree (git write-tree)</div><div class="v">${esc(ev.staged_tree)}</div></div>
+        </div>
+        <div class="sub" style="margin-bottom:0.3rem;">Commit Message:</div>
+        <div class="email-box"><pre style="margin:0; white-space:pre-wrap;">${esc(ev.commit_message)}</pre></div>
+        <div class="sub">Changed Files (${(ev.files || []).length}):</div>
+        <ul class="mono" style="margin:0.3rem 0 0.6rem; padding-left:1.2rem;">${fileRows || "<li>None</li>"}</ul>
+        ${(ev.escalated_paths || []).length ? `<div class="l3-confirm">Escalated to L3: commit touches CI / executable / git-attribute files.</div>` : ""}
+        <div class="sub" style="margin-bottom:0.3rem;">Unified Diff Preview${ev.diff_truncated ? " (truncated; hash covers full diff)" : ""}:</div>
+        <div class="diff-box"><pre style="margin:0;">${formatDiff(ev.unified_diff)}</pre></div>
+        ${contract ? `
+          <div class="sub" style="margin-bottom:0.3rem;">Frozen RFC 8785 Approval Contract (exact bytes signed by Ed25519):</div>
+          <div class="diff-box"><pre style="margin:0; white-space:pre-wrap; word-break:break-all;">${esc(jcs(contract))}</pre></div>
+        ` : ""}
+      `;
+    }
+
+    async function loadSignerInfo() {
+      try {
+        const r = await fetch("/api/v1/dev/signer-info");
+        if (!r.ok) {
+          document.getElementById("devId").textContent = "DEV MODE DISABLED";
+          document.getElementById("devPub").textContent = "Set MINI_DEV_MODE=true";
+          return;
+        }
+        const d = await r.json();
+        document.getElementById("devId").textContent = d.device_id;
+        document.getElementById("devPub").textContent = d.public_key_b64;
+      } catch (e) {
+        document.getElementById("devId").textContent = "Offline";
+      }
+    }
+
+    async function decide(contractId, decision, isL3) {
+      let confirmDestructive = false;
+      if (decision === "approve" && isL3) {
+        const cb = document.getElementById(`confirm_${contractId}`);
+        confirmDestructive = Boolean(cb && cb.checked);
+        if (!confirmDestructive) {
+          showToast("L3 Destructive contracts require checking the confirmation box first.", true);
+          return;
+        }
+      }
+      const r = await fetch("/api/v1/dev/sign-and-decide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contract_id: contractId,
+          decision: decision,
+          confirm_destructive: confirmDestructive,
+          reason: decision === "reject" ? "Rejected by user in /mobile-mock" : null,
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        const err = (d.detail && (d.detail.error || d.detail.detail || JSON.stringify(d.detail))) || "Action failed";
+        showToast(`Error (${r.status}): ${err}`, true);
+      } else {
+        showToast(`Contract ${contractId.slice(0, 8)}... -> ${d.approval.status}`);
+      }
+      await loadApprovals();
+    }
+
+    async function loadApprovals() {
+      const url = currentFilter === "PENDING" ? "/api/v1/approvals?status=PENDING" : "/api/v1/approvals";
+      const r = await fetch(url);
+      const d = await r.json();
+      const list = d.approvals || [];
+
+      if (currentFilter === "PENDING") {
+        document.getElementById("pendingCount").textContent = list.length;
+      } else {
+        const rp = await fetch("/api/v1/approvals?status=PENDING");
+        const dp = await rp.json();
+        document.getElementById("pendingCount").textContent = (dp.approvals || []).length;
+      }
+
+      const box = document.getElementById("contractsContainer");
+      if (!list.length) {
+        box.innerHTML = `<div class="contract-card" style="text-align:center; color:var(--muted);">No ${esc(currentFilter.toLowerCase())} approval contracts.</div>`;
+        return;
+      }
+
+      box.innerHTML = list.map(rec => {
+        const c = rec.contract;
+        const isL3 = c.risk_level === "L3";
+        const isPending = rec.status === "PENDING";
+        return `
+          <div class="contract-card">
+            <div class="c-head">
+              <div style="display:flex; align-items:center; gap:0.55rem; flex-wrap:wrap;">
+                <span class="badge risk-${esc(c.risk_level)}">${esc(c.risk_level)}</span>
+                <strong>${esc(c.action_type)}</strong>
+                <span class="mono" style="color:var(--muted);">task=${esc(c.task_id)}</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span class="badge status-${esc(rec.status)}">${esc(rec.status)}</span>
+                <span class="mono" style="color:var(--muted);">expires ${esc(c.expires_at)}</span>
+              </div>
+            </div>
+
+            ${renderEvidence(rec.evidence, c)}
+
+            <div class="meta-grid">
+              <div class="meta-item"><div class="k">Contract ID</div><div class="v">${esc(c.contract_id)}</div></div>
+              <div class="meta-item"><div class="k">Single-Use Nonce (UUIDv4)</div><div class="v">${esc(c.nonce)}</div></div>
+              <div class="meta-item"><div class="k">Canonical Params SHA-256</div><div class="v">${esc(c.params_hash_sha256)}</div></div>
+            </div>
+
+            <details>
+              <summary>Inspect RFC 8785 Contract Payload &amp; Execution Outcome</summary>
+              <pre class="diff-box" style="margin-top:0.5rem;">${esc(JSON.stringify({ contract: c, outcome: rec.outcome }, null, 2))}</pre>
+            </details>
+
+            ${isPending && isL3 ? `
+              <label class="l3-confirm">
+                <input type="checkbox" id="confirm_${esc(c.contract_id)}" />
+                <span><strong>L3 Destructive Action Confirmation:</strong> Include <code>"confirm_destructive": true</code> inside the signed RFC 8785 payload.</span>
+              </label>
+            ` : ""}
+
+            ${isPending ? `
+              <div class="btn-row">
+                <span class="sub">Signing with Ed25519 key pinned in <code>~/.mini/trusted_devices.json</code></span>
+                <div style="display:flex; gap:0.65rem;">
+                  <button class="btn-reject" type="button" onclick="decide('${esc(c.contract_id)}', 'reject', ${isL3})">Reject</button>
+                  <button class="btn-approve" type="button" onclick="decide('${esc(c.contract_id)}', 'approve', ${isL3})">Approve &amp; Sign (Ed25519)</button>
+                </div>
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }).join("");
+    }
+
+    document.getElementById("tabPending").addEventListener("click", () => {
+      currentFilter = "PENDING";
+      document.getElementById("tabPending").classList.add("active");
+      document.getElementById("tabAll").classList.remove("active");
+      loadApprovals();
+    });
+    document.getElementById("tabAll").addEventListener("click", () => {
+      currentFilter = "ALL";
+      document.getElementById("tabAll").classList.add("active");
+      document.getElementById("tabPending").classList.remove("active");
+      loadApprovals();
+    });
+    document.getElementById("refreshBtn").addEventListener("click", loadApprovals);
+
+    const es = new EventSource("/api/v1/events/stream");
+    es.addEventListener("audit_event", (msg) => {
+      const ev = JSON.parse(msg.data);
+      if (ev.event_type.includes("CONTRACT") || ev.event_type.includes("EXECUTION") || ev.event_type.includes("TOCTOU") || ev.event_type.includes("KILL_SWITCH")) {
+        loadApprovals();
+      }
+    });
+
+    loadSignerInfo();
+    loadApprovals();
+  </script>
+</body>
+</html>

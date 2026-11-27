@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini — Glass-Box Security Monitor</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --panel: #131a27;
+      --panel-alt: #192233;
+      --border: #263249;
+      --text: #e6edf7;
+      --muted: #8b9bb4;
+      --l0: #22c55e;
+      --l1: #3b82f6;
+      --l2: #f59e0b;
+      --l3: #ef4444;
+      --danger: #dc2626;
+      --ok: #10b981;
+      --mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .brand h1 {
+      font-size: 1.15rem;
+      margin: 0;
+      letter-spacing: 0.01em;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--panel-alt);
+    }
+    .pill.ok { color: #34d399; border-color: #065f46; background: rgba(16, 185, 129, 0.12); }
+    .pill.paused { color: #fca5a5; border-color: #991b1b; background: rgba(220, 38, 38, 0.2); }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    button, a.btn {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--panel-alt);
+      color: var(--text);
+      padding: 0.5rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: filter 0.15s, transform 0.05s;
+    }
+    button:hover, a.btn:hover { filter: brightness(1.15); }
+    button:active { transform: translateY(1px); }
+    .btn-kill {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      border-color: #f87171;
+      color: #fff;
+      padding: 0.55rem 1.1rem;
+      font-size: 0.85rem;
+      letter-spacing: 0.03em;
+      box-shadow: 0 0 18px rgba(239, 68, 68, 0.35);
+    }
+    .btn-reset {
+      background: #1e293b;
+      border-color: #38bdf8;
+      color: #7dd3fc;
+    }
+    main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 1.25rem 1.5rem 2.5rem;
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 1.25rem;
+    }
+    @media (max-width: 980px) {
+      main { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .card h2 {
+      margin: 0 0 0.75rem;
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+    .stat {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.75rem;
+    }
+    .stat .val {
+      font-size: 1.35rem;
+      font-weight: 700;
+      font-family: var(--mono);
+    }
+    .stat .lbl {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .worker-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .worker-row:last-child { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 0.12rem 0.48rem;
+      border-radius: 5px;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      font-weight: 700;
+    }
+    .risk-L0 { background: rgba(34, 197, 94, 0.16); color: #4ade80; border: 1px solid #15803d; }
+    .risk-L1 { background: rgba(59, 130, 246, 0.16); color: #60a5fa; border: 1px solid #1d4ed8; }
+    .risk-L2 { background: rgba(245, 158, 11, 0.16); color: #fbbf24; border: 1px solid #b45309; }
+    .risk-L3 { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #b91c1c; }
+    .verdict-ALLOW { color: #4ade80; }
+    .verdict-STAGE { color: #60a5fa; }
+    .verdict-REQUIRE_APPROVAL { color: #fbbf24; }
+    .verdict-DENY { color: #f87171; font-weight: 700; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    input[type="search"], select {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.42rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+    }
+    .stream-box {
+      max-height: 75vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .ev-row {
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      border-left: 4px solid #475569;
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.83rem;
+    }
+    .ev-row.ev-violation { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.07); }
+    .ev-row.ev-contract { border-left-color: #f59e0b; }
+    .ev-row.ev-ok { border-left-color: #22c55e; }
+    .ev-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+    .ev-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .mono { font-family: var(--mono); font-size: 0.77rem; }
+    pre.details {
+      margin: 0.35rem 0 0;
+      padding: 0.5rem 0.65rem;
+      background: #090d14;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .audit-box {
+      margin-top: 0.65rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-family: var(--mono);
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div>
+        <h1>MINI // Glass-Box Security Monitor</h1>
+        <div class="sub">Independent MCP Policy Proxy &bull; Hash-Chained Audit Stream (RFC 8785 + SHA-256)</div>
+      </div>
+      <span id="daemonStatus" class="pill">Connecting&hellip;</span>
+      <span id="sseStatus" class="pill">SSE: init</span>
+    </div>
+    <div class="actions">
+      <a class="btn" href="/mobile-mock" target="_blank" rel="noopener">Open Mock Mobile UI (/mobile-mock)</a>
+      <button id="verifyAuditBtn" type="button">Verify Audit Chain</button>
+      <button id="resetKillBtn" class="btn-reset" type="button" style="display:none;">Reset Kill Switch</button>
+      <button id="killSwitchBtn" class="btn-kill" type="button">EMERGENCY KILL SWITCH</button>
+    </div>
+  </header>
+
+  <main>
+    <aside>
+      <div class="card">
+        <h2>TelemetryCounters</h2>
+        <div class="stat-grid">
+          <div class="stat"><div id="cntTotal" class="val">0</div><div class="lbl">Audit Events</div></div>
+          <div class="stat"><div id="cntPending" class="val">0</div><div class="lbl">Pending L2/L3</div></div>
+          <div class="stat"><div id="cntViolations" class="val" style="color:#f87171;">0</div><div class="lbl">Violations Blocked</div></div>
+          <div class="stat"><div id="cntExecuted" class="val" style="color:#4ade80;">0</div><div class="lbl">Executions OK</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Downstream Stdio MCP Workers</h2>
+        <div id="workersList">
+          <div class="sub">Loading worker states&hellip;</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Audit Chain Integrity</h2>
+        <div class="sub">Verifies SQLite (WAL) &amp; <code>logs/audit.jsonl</code> RFC 8785 hash links.</div>
+        <div id="auditReport" class="audit-box">Click "Verify Audit Chain" to run check.</div>
+      </div>
+    </aside>
+
+    <section>
+      <div class="card" id="approvalsCard">
+        <div class="toolbar">
+          <h2 style="margin:0;">Pending Approval Contracts</h2>
+          <a class="btn" href="/mobile-mock" target="_blank" rel="noopener">Sign on Mock Mobile &rarr;</a>
+        </div>
+        <div id="approvalsList"><div class="sub">No pending contracts.</div></div>
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <h2 style="margin:0;">Live Execution &amp; Policy Trace</h2>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <select id="filterRisk">
+              <option value="">All Risk Levels</option>
+              <option value="L0">L0 (Read-Only)</option>
+              <option value="L1">L1 (Staged)</option>
+              <option value="L2">L2 (Approval)</option>
+              <option value="L3">L3 (Destructive)</option>
+            </select>
+            <select id="filterType">
+              <option value="">All Event Types</option>
+              <option value="VIOLATION">Violations / Rejections</option>
+              <option value="CONTRACT">Approval Contracts</option>
+              <option value="POLICY_DECISION">Policy Decisions</option>
+            </select>
+            <input id="searchBox" type="search" placeholder="Filter tool / task / hash..." />
+          </div>
+        </div>
+        <div id="eventStream" class="stream-box"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const events = [];
+    const seenSeq = new Set();
+
+    function esc(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function classifyRow(ev) {
+      if (["SECURITY_VIOLATION", "TOCTOU_VIOLATION", "SIGNATURE_REJECTED", "NONCE_REPLAY_BLOCKED", "KILL_SWITCH_TRIGGERED"].includes(ev.event_type) || ev.verdict === "DENY") {
+        return "ev-violation";
+      }
+      if (["CONTRACT_ISSUED", "SIGNATURE_VERIFIED", "CONTRACT_REJECTED", "CONTRACT_REVOKED", "APPROVAL_PENDING"].includes(ev.event_type)) {
+        return "ev-contract";
+      }
+      if (ev.event_type === "EXECUTION_SUCCEEDED") return "ev-ok";
+      return "";
+    }
+
+    function renderCounters() {
+      document.getElementById("cntTotal").textContent = events.length;
+      const violations = events.filter(e =>
+        ["SECURITY_VIOLATION", "TOCTOU_VIOLATION", "SIGNATURE_REJECTED", "NONCE_REPLAY_BLOCKED"].includes(e.event_type)
+      ).length;
+      const executed = events.filter(e => e.event_type === "EXECUTION_SUCCEEDED").length;
+      document.getElementById("cntViolations").textContent = violations;
+      document.getElementById("cntExecuted").textContent = executed;
+    }
+
+    function renderEvents() {
+      const riskF = document.getElementById("filterRisk").value;
+      const typeF = document.getElementById("filterType").value;
+      const q = document.getElementById("searchBox").value.trim().toLowerCase();
+      const box = document.getElementById("eventStream");
+
+      const filtered = events.filter(ev => {
+        if (riskF && ev.risk_level !== riskF) return false;
+        if (typeF === "VIOLATION" && !["SECURITY_VIOLATION", "TOCTOU_VIOLATION", "SIGNATURE_REJECTED", "NONCE_REPLAY_BLOCKED", "KILL_SWITCH_TRIGGERED"].includes(ev.event_type) && ev.verdict !== "DENY") return false;
+        if (typeF === "CONTRACT" && !ev.contract_id && !ev.event_type.includes("CONTRACT") && !ev.event_type.includes("SIGNATURE")) return false;
+        if (typeF === "POLICY_DECISION" && ev.event_type !== "POLICY_DECISION") return false;
+        if (q && !JSON.stringify(ev).toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      box.innerHTML = filtered.slice().reverse().map(ev => {
+        const riskBadge = ev.risk_level ? `<span class="badge risk-${esc(ev.risk_level)}">${esc(ev.risk_level)}</span>` : "";
+        const verdictSpan = ev.verdict ? `<span class="mono verdict-${esc(ev.verdict)}">${esc(ev.verdict)}</span>` : "";
+        const toolSpan = ev.tool ? `<span class="badge" style="background:#1e293b;">${esc(ev.server ? ev.server + "." : "")}${esc(ev.tool)}</span>` : "";
+        const taskSpan = ev.task_id ? `<span class="mono" style="color:var(--muted);">task=${esc(ev.task_id)}</span>` : "";
+        const detailsStr = ev.details && Object.keys(ev.details).length ? JSON.stringify(ev.details, null, 2) : "";
+        return `
+          <div class="ev-row ${classifyRow(ev)}">
+            <div class="ev-head">
+              <div class="ev-meta">
+                <span class="mono" style="color:var(--muted);">#${ev.seq}</span>
+                <strong>${esc(ev.event_type)}</strong>
+                ${riskBadge}
+                ${verdictSpan}
+                ${toolSpan}
+                ${taskSpan}
+              </div>
+              <span class="mono" style="color:var(--muted);">${esc(ev.ts)}</span>
+            </div>
+            <div class="mono" style="color:var(--muted); font-size:0.72rem;">
+              prev=${esc((ev.prev_event_hash || "").slice(0, 16))}&hellip; &rarr; hash=${esc((ev.event_hash || "").slice(0, 16))}&hellip;
+              ${ev.contract_id ? ` | contract=${esc(ev.contract_id)}` : ""}
+            </div>
+            ${detailsStr ? `<pre class="details">${esc(detailsStr)}</pre>` : ""}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function jcs(v) {
+      if (v === null || typeof v !== "object") return JSON.stringify(v);
+      if (Array.isArray(v)) return "[" + v.map(jcs).join(",") + "]";
+      return "{" + Object.keys(v).sort().map(k => JSON.stringify(k) + ":" + jcs(v[k])).join(",") + "}";
+    }
+
+    function diffHtml(text) {
+      if (!text) return '<span style="color:var(--muted);">(no textual diff)</span>';
+      return text.split("\n").map(l => {
+        let color = "";
+        if (l.startsWith("+++") || l.startsWith("---") || l.startsWith("@@")) color = "#38bdf8";
+        else if (l.startsWith("+")) color = "#4ade80";
+        else if (l.startsWith("-")) color = "#f87171";
+        return color ? `<span style="color:${color};">${esc(l)}</span>` : esc(l);
+      }).join("\n");
+    }
+
+    function renderGitApproval(rec) {
+      const c = rec.contract, ev = rec.evidence;
+      const escalated = new Set(ev.escalated_paths || []);
+      return `
+        <div class="ev-row ev-contract" style="margin-bottom:0.6rem;">
+          <div class="ev-head">
+            <div class="ev-meta">
+              <span class="badge risk-${esc(c.risk_level)}">${esc(c.risk_level)}</span>
+              <strong>git.commit_and_push</strong>
+              <span class="mono">${esc(ev.repo_name)}:${esc(ev.branch)} &rarr; ${esc(ev.remote)}</span>
+            </div>
+            <span class="mono" style="color:var(--muted);">expires ${esc(c.expires_at)}</span>
+          </div>
+          <div class="mono" style="margin:0.25rem 0;"><strong>Commit:</strong> ${esc(ev.commit_message)}</div>
+          <div class="mono" style="margin:0.25rem 0;"><strong>Files:</strong> ${(ev.files || []).map(f => esc(f) + (escalated.has(f) ? " [L3]" : "")).join(", ")}</div>
+          <div class="mono" style="margin:0.25rem 0; word-break:break-all;"><strong>diff_sha256:</strong> ${esc(ev.diff_sha256)}</div>
+          <div class="mono" style="margin:0.25rem 0; word-break:break-all;"><strong>remote_url:</strong> ${esc(ev.remote_url)}</div>
+          <pre class="details" style="white-space:pre;">${diffHtml(ev.unified_diff)}</pre>
+          <details><summary class="mono" style="cursor:pointer; color:var(--muted);">RFC 8785 contract payload</summary>
+            <pre class="details">${esc(jcs(c))}</pre>
+          </details>
+        </div>`;
+    }
+
+    function renderGenericApproval(rec) {
+      const c = rec.contract;
+      return `
+        <div class="ev-row ev-contract" style="margin-bottom:0.6rem;">
+          <div class="ev-meta">
+            <span class="badge risk-${esc(c.risk_level)}">${esc(c.risk_level)}</span>
+            <strong>${esc(c.action_type)}</strong>
+            <span class="mono">${esc(Array.isArray(c.target) ? c.target.join(", ") : c.target)}</span>
+          </div>
+        </div>`;
+    }
+
+    async function refreshApprovals() {
+      try {
+        const r = await fetch("/api/v1/approvals?status=PENDING");
+        const d = await r.json();
+        const list = d.approvals || [];
+        document.getElementById("approvalsList").innerHTML = list.length
+          ? list.map(rec => rec.evidence && rec.evidence.kind === "git_commit" ? renderGitApproval(rec) : renderGenericApproval(rec)).join("")
+          : '<div class="sub">No pending contracts.</div>';
+      } catch (e) { /* daemon offline; health badge shows it */ }
+    }
+
+    async function refreshHealth() {
+      refreshApprovals();
+      try {
+        const r = await fetch("/api/v1/health");
+        const d = await r.json();
+        const badge = document.getElementById("daemonStatus");
+        const resetBtn = document.getElementById("resetKillBtn");
+        if (d.status === "paused") {
+          badge.className = "pill paused";
+          badge.textContent = "PAUSED (KILL SWITCH ACTIVE)";
+          resetBtn.style.display = "inline-block";
+        } else {
+          badge.className = "pill ok";
+          badge.textContent = "ACTIVE (POLICY ENFORCED)";
+          resetBtn.style.display = "none";
+        }
+        document.getElementById("cntPending").textContent = d.pending_contracts ?? 0;
+        const workers = (d.workers && d.workers.workers) || {};
+        const wHtml = Object.entries(workers).map(([name, info]) => `
+          <div class="worker-row">
+            <div><strong>${esc(name)}</strong> <span class="mono" style="color:var(--muted);">PID ${esc(info.pid ?? "—")}</span></div>
+            <span class="pill ${info.alive ? "ok" : "paused"}">${info.alive ? "RUNNING (stdio)" : "STOPPED"}</span>
+          </div>
+        `).join("");
+        document.getElementById("workersList").innerHTML = wHtml || `<div class="sub">No active workers</div>`;
+      } catch (e) {
+        const badge = document.getElementById("daemonStatus");
+        badge.className = "pill paused";
+        badge.textContent = "OFFLINE";
+      }
+    }
+
+    async function verifyAuditChain() {
+      const box = document.getElementById("auditReport");
+      box.textContent = "Verifying SQLite + logs/audit.jsonl chain...";
+      const r = await fetch("/api/v1/audit/verify");
+      const d = await r.json();
+      if (d.ok) {
+        box.style.borderColor = "#065f46";
+        box.style.color = "#34d399";
+        box.innerHTML = `<strong>VALID CHAIN</strong> (${d.count} entries, ${esc(d.source)})<br/>head=${esc(d.head_hash)}`;
+      } else {
+        box.style.borderColor = "#b91c1c";
+        box.style.color = "#f87171";
+        box.innerHTML = `<strong>TAMPER DETECTED</strong> at seq=${esc(d.first_bad_seq)}: ${esc(d.error)}`;
+      }
+    }
+
+    document.getElementById("verifyAuditBtn").addEventListener("click", verifyAuditChain);
+    document.getElementById("killSwitchBtn").addEventListener("click", async () => {
+      await fetch("/api/v1/kill-switch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "Triggered from Glass-Box Monitor UI" }),
+      });
+      await refreshHealth();
+    });
+    document.getElementById("resetKillBtn").addEventListener("click", async () => {
+      await fetch("/api/v1/kill-switch/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restart_workers: true }),
+      });
+      await refreshHealth();
+    });
+
+    ["filterRisk", "filterType", "searchBox"].forEach(id => {
+      document.getElementById(id).addEventListener("input", renderEvents);
+    });
+
+    function connectSSE() {
+      const sseBadge = document.getElementById("sseStatus");
+      const es = new EventSource("/api/v1/events/stream");
+      es.onopen = () => {
+        sseBadge.className = "pill ok";
+        sseBadge.textContent = "SSE: Live";
+      };
+      es.addEventListener("audit_event", (msg) => {
+        const ev = JSON.parse(msg.data);
+        if (!seenSeq.has(ev.seq)) {
+          seenSeq.add(ev.seq);
+          events.push(ev);
+          renderCounters();
+          renderEvents();
+          refreshHealth();
+        }
+      });
+      es.onerror = () => {
+        sseBadge.className = "pill paused";
+        sseBadge.textContent = "SSE: Reconnecting...";
+      };
+    }
+
+    refreshHealth();
+    verifyAuditChain();
+    connectSSE();
+    setInterval(refreshHealth, 4000);
+  </script>
+</body>
+</html>
